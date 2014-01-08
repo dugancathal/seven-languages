@@ -22,3 +22,12 @@
 - "Ruby is a block party"
 
 - Oh Ruby and its sugar.
+
+## Day 3
+
+- Bold move, teaching metaprogramming on day 3 ...
+
+- The Roman numeral implementation is, at the same time, both beautiful and
+  HORRIFYING
+
+Well ... I wish that had been longer
