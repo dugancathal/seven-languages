@@ -27,7 +27,7 @@ Written in 2002, it's always Io, never IO.
   - Assign them just like other objects
 
 - You can get the contents of a slot by sending the message, OR with
-  #getSlot("slotName")
+    #getSlot("slotName")
 
 - You can get an object's prototype with #proto
 
@@ -37,8 +37,7 @@ Written in 2002, it's always Io, never IO.
 
   - `awesomeLanguages := list("Ruby", "Go", "Clojure")`
 
-  - respond to #size, #append, #average, #sum, #at(n), #append(i),
-    #pop, #isEmpty, #prepend(i)
+  - respond to #size, #append, #average, #sum, #at(n), #append(i), #pop, #isEmpty, #prepend(i)
 
   - `awesomeLanguages include("Scala")`
 
@@ -46,8 +45,7 @@ Written in 2002, it's always Io, never IO.
 
   - `elvis := Map clone`
 
-  - respond to #atPut(key, val), #at(key), #asObject, #asList, #keys
-    #size
+  - respond to #atPut(key, val), #at(key), #asObject, #asList, #keys, #size
 
 ### Booleans
 
@@ -175,3 +173,91 @@ message parameters, but delays binding and execution.
 
     disco := Duck clone
     disco ancestors
+
+## Day 3 - DSLs are apparently a big thing
+
+So, apparently, you can implement a subset of C in Io in 40 lines...
+
+The `curlyBrackets` message is called whenever the parser encounters `{}`.
+
+### Parsing XML in Io
+
+Suppose you have:
+
+    <body>
+      <p>
+        This is a paragraph
+      </p>
+    </body>
+
+And you want to represent this in Io (LispML for those that are following
+along).
+
+    body(
+      p("This is a paragraph")
+    )
+
+You can do this pretty easily... (remember, I prefaced that with a "pretty").
+
+    Builder := Object clone
+    Builder forward := method(
+      tagName := call message name;
+      writeln("<", tagName, ">");
+      call message arguments foreach(arg,
+        content := self doMessage(arg);
+        if(content type == "Sequence", wri teln(content)));
+      writeln("</", tagName, ">"))
+    Builder body(p("This is a paragraph"))
+
+The key takeaways from that are:
+
+    - The `forward` message is basically like Ruby's `method_missing`
+
+    - We just redefined inheritance for the subObject Builder
+
+### Concurrency - This is when shit gets real
+
+Built of three main components - coroutines, actors, and futures.
+
+#### Coroutines
+
+A coroutine provides a way to voluntarily suspend and resume execution of a
+process. Think of this as a block with multiple `yield`s that all suspend the
+process and transfer control to another process.
+
+Before a message: 
+
+  - `@` returns a future and starts a coroutine (e.g. obj @mes)
+
+  - `@@` returns nil and starts the coroutine (e.g. obj @@mes)
+
+You can call methods that start coroutines and release control from the current
+coroutine with `Coroutine currentCoroutine pause`. Then, in your methods,
+`yield` passes control to another waiting coroutine.
+
+#### Actors
+
+Think of actors as concurrent primitives that send messages, process messages,
+and create more actors.
+
+An actor can only change its own state and only accesses other actors through
+message queues. Sending an async message to _ANY_ object makes it into an actor.
+
+    slower := Object clone
+    faster := Object clone
+    slower start := method(wait(2); writeln("Slow and steady wins the race"))
+    faster start := method(wait(1); writeln("Not if I get there first!"))
+
+#### Futures
+
+A future is a resultant object that immediately comes back from an async call.
+The future will become the result of the message when the result is available.
+If you ask for the value before it's ready, the process will block until such a
+time as it can give you back the value.
+
+    futureResult := URL with("http://google.com") @fetch
+    writeln("Doing something else")
+    writeln("This will block ....")
+    writeln("Fetched ", futureResult size, " bytes")
+
+Futures also provide deadlock detection ... apparently.
